@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -27,7 +28,8 @@ public class SecurityConfig {
 
     // Configuración del AuthenticationManager
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -70,23 +72,24 @@ public class SecurityConfig {
     // Configuración de la cadena de filtros de seguridad HTTP
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http    
-                .cors().disable()  // Desactiva la protección CORS
-                .csrf().disable()  // Desactiva la protección CSRF
-                .exceptionHandling()
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint)  // Configura el punto de entrada para errores de autenticación JWT
-                .and()
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Configura la política de creación de sesiones como STATELESS (sin sesiones)
-                .and()
-                .authorizeHttpRequests()
-                .requestMatchers("/auth/**", "/v1/user/**", "/publication/publications/top", "/v1/publication/**", "/v1/producerRequest/**", "/swagger-ui/**", "/swagger-ui.html/**", "/v3/api-docs/**", "/logs/**").permitAll() // Permite acceso sin autenticación a las páginas de inicio, registro y login
-                .requestMatchers("/configuracion").hasAuthority("ADMINISTRATOR")
-                .anyRequest().authenticated()  // Requiere autenticación para cualquier otra solicitud
-                .and()
-                .httpBasic();  // Configura la autenticación básica HTTP
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/publication/publications/top",
+                                "/swagger-ui/**", "/swagger-ui.html/**",
+                                "/v3/api-docs/**", "/logs/**")
+                        .permitAll()
+                        .requestMatchers("/v1/publication/**", "/v1/user/**")
+                        .hasAnyAuthority("USER", "ADMIN", "PRODUCER")
+                        .requestMatchers("/configuracion").hasAuthority("ADMINISTRATOR")
+                        .anyRequest().authenticated())
+                .httpBasic(withDefaults());
 
-        // Agrega el filtro personalizado JwtAuthenticationFilter antes del filtro de autenticación de nombre de usuario y contraseña
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
