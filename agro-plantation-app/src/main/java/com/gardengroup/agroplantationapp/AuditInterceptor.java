@@ -1,8 +1,18 @@
+package com.gardengroup.agroplantationapp;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import com.gardengroup.agroplantationapp.model.entity.AuditLog;
+import com.gardengroup.agroplantationapp.model.repository.AuditLogRepository;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDateTime;
 
 @Component
-public class AuditInterceptor extends HandlerInterceptorAdapter {
+public class AuditInterceptor implements HandlerInterceptor {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
